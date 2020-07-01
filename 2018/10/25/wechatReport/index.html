@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Prometheus微信报警配置 |   Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			Prometheus微信报警配置
+		</p>
+		<div class="info">	
+			<time>
+				10月 25, 2018
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">795
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<p>上篇中我们已经配置好了Prometheus监控报警，报警使用的STMP邮件报警形式。</p>
+<p>现在我们基于之前的配置添加企业微信告警。</p>
+<h3 id="开通企业微信"><a href="#开通企业微信" class="headerlink" title="开通企业微信"></a>开通企业微信</h3><ul>
+<li>注册 <a href="https://work.weixin.qq.com/" target="_blank" rel="noopener">企业微信</a>。<a id="more"></a></li>
+<li>添加自建应用<br><img src="./wechat-app.png" alt></li>
+</ul>
+<h3 id="Alertmanager配置"><a href="#Alertmanager配置" class="headerlink" title="Alertmanager配置"></a>Alertmanager配置</h3><ul>
+<li><p>修改Alertmanager配置<br>我们在原有的的Alertmanager配置中添加企业微信配置。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"># vim alertmanager.yml</span><br><span class="line">global:</span><br><span class="line">  smtp_smarthost: &apos;smtp.163.com:25&apos;     </span><br><span class="line">  smtp_from: &apos;test@163.com&apos;             </span><br><span class="line">  smtp_auth_username: &apos;test@163.com&apos;    </span><br><span class="line">  smtp_auth_password: &apos;******&apos;          </span><br><span class="line">  smtp_require_tls: false               </span><br><span class="line">route:</span><br><span class="line">  group_by: [&apos;host&apos;,&apos;id&apos;,&apos;type&apos;]        </span><br><span class="line">  group_wait: 30s                       </span><br><span class="line">  group_interval: 30s                   </span><br><span class="line">  repeat_interval: 1h                   </span><br><span class="line">  receiver: &apos;test-mails&apos;                </span><br><span class="line">receivers:</span><br><span class="line">- name: &apos;test-mails&apos;</span><br><span class="line">  email_configs:</span><br><span class="line">  - to: &quot;×××@qq.com&quot;</span><br><span class="line">  wechat_configs:</span><br><span class="line">  - corp_id: &apos;企业ID&apos;</span><br><span class="line">      to_party: &apos;分组ID&apos;</span><br><span class="line">      to_user: &apos;userID&apos;</span><br><span class="line">      agent_id: &apos;自建应用ID&apos;</span><br><span class="line">      api_secret: &apos;自建应用Secret&apos;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>重启Alertmanager服务</p>
+</li>
+</ul>
+<h3 id="测试接收信息"><a href="#测试接收信息" class="headerlink" title="测试接收信息"></a>测试接收信息</h3><p>  <img src="./wechat-message.png" alt></p>
+  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/Prometheus/">Prometheus</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2018/10/24/prometheus/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          Docker部署Prometheus+Alertmanager+Grafana监控及邮件报警
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+      <a href="/2018/10/26/exporter/" class="link-wrap">
+        <strong class="caption">newer</strong>
+        
+        <span class="title">
+          使用Go语言开发Prometheus exporter
+        </span>
+      </a>
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>

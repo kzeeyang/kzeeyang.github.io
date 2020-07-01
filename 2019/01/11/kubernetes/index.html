@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Kubernetes单节点安装 |   Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			Kubernetes单节点安装
+		</p>
+		<div class="info">	
+			<time>
+				1月 11, 2019
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">3663
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<p>Kubernetes是一个开源的，用于管理云平台中多个主机上的容器化的应用，Kubernetes的目标是让部署容器化的应用简单并且高效（powerful）,Kubernetes提供了应用部署，规划，更新，维护的一种机制。<br><a id="more"></a></p>
+<h3 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h3><p>系统环境为Centos7<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ systemctl stop firewalld</span><br><span class="line">$ systemctl disable firewalld</span><br><span class="line">$ vim /etc/sysconfig/selinux</span><br><span class="line">SELINUX=enforcing</span><br><span class="line"></span><br><span class="line">#有需要开启此选项</span><br><span class="line">$ echo 1 &gt; /proc/sys/net/bridge/bridge-nf-call-iptables</span><br><span class="line">$ echo 1 &gt; /proc/sys/net/bridge/bridge-nf-call-ip6tables</span><br></pre></td></tr></table></figure></p>
+<h3 id="安装K8S服务"><a href="#安装K8S服务" class="headerlink" title="安装K8S服务"></a>安装K8S服务</h3><ol>
+<li><p>下载安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">#尽量安装官方ce版本，centos默认yum里的docker版本过低，不能编译dockerfile。</span><br><span class="line">$ yum install -y docker-ce</span><br><span class="line">$ systemctl enable docker &amp;&amp; systemctl start docker</span><br><span class="line">#修改docker拉取镜像源</span><br><span class="line">$ vim /etc/docker/daemon.json</span><br><span class="line">&#123; </span><br><span class="line">  &quot;registry-mirrors&quot;: [&quot;https://registry.docker-cn.com&quot;,&quot;https://4e9n046r.mirror.aliyuncs.com&quot;,&quot;http://8618acef.m.daocloud.io&quot;] </span><br><span class="line">&#125;</span><br><span class="line">$ systemctl daemon-reload &amp;&amp; systemctl restart docker</span><br><span class="line"></span><br><span class="line">$  yum install -y kubelet kubeadm kubectl kubernetes-cni</span><br><span class="line">$  systemctl enable kubelet &amp;&amp; systemctl start kubelet</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>拉取所需要的镜像</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#拉取镜像，重命名为 gcr.io/google_containers 开头，以共kubeadm使用</span><br><span class="line">$ docker pull warrior/pause-amd64:3.0 &amp;&amp; docker tag warrior/pause-amd64:3.0 gcr.io/google_containers/pause-amd64:3.0</span><br><span class="line">$ docker pull warrior/etcd-amd64:3.0.17 &amp;&amp; docker tag warrior/etcd-amd64:3.0.17 gcr.io/google_containers/etcd-amd64:3.0.17</span><br><span class="line">$ docker pull warrior/kube-apiserver-amd64:v1.6.0 &amp;&amp; docker tag warrior/kube-apiserver-amd64:v1.6.0 gcr.io/google_containers/kube-apiserver-amd64:v1.6.0</span><br><span class="line">$ docker pull warrior/kube-scheduler-amd64:v1.6.0 &amp;&amp; docker tag warrior/kube-scheduler-amd64:v1.6.0 gcr.io/google_containers/kube-scheduler-amd64:v1.6.0</span><br><span class="line">$ docker pull warrior/kube-controller-manager-amd64:v1.6.0 &amp;&amp; docker tag warrior/kube-controller-manager-amd64:v1.6.0 gcr.io/google_containers/kube-controller-manager-amd64:v1.6.0</span><br><span class="line">$ docker pull warrior/kube-proxy-amd64:v1.6.0 &amp;&amp; docker tag warrior/kube-proxy-amd64:v1.6.0 gcr.io/google_containers/kube-proxy-amd64:v1.6.0</span><br><span class="line">$ docker pull gysan/dnsmasq-metrics-amd64:1.0 &amp;&amp; docker tag gysan/dnsmasq-metrics-amd64:1.0 gcr.io/google_containers/dnsmasq-metrics-amd64:1.0</span><br><span class="line">$ docker pull zhaoqing/k8s-dns-kube-dns-amd64:1.14.4 &amp;&amp; docker tag zhaoqing/k8s-dns-kube-dns-amd64:1.14.4 gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.4</span><br><span class="line">$ docker pull zhaoqing/k8s-dns-dnsmasq-nanny-amd64:1.14.4 &amp;&amp; docker tag zhaoqing/k8s-dns-dnsmasq-nanny-amd64:1.14.4 gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.4</span><br><span class="line">$ docker pull zhaoqing/k8s-dns-sidecar-amd64:1.14.4 &amp;&amp; docker tag zhaoqing/k8s-dns-sidecar-amd64:1.14.4 gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.4</span><br><span class="line">$ docker pull awa305/kube-discovery-amd64:1.0 &amp;&amp; docker tag awa305/kube-discovery-amd64:1.0 gcr.io/google_containers/kube-discovery-amd64:1.0</span><br><span class="line">$ docker pull gysan/exechealthz-amd64:1.2 &amp;&amp; docker tag gysan/exechealthz-amd64:1.2 gcr.io/google_containers/exechealthz-amd64:1.2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>安装master</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ kubeadm init --kubernetes-version=v1.9.4 --pod-network-cidr=10.244.0.0/16</span><br><span class="line">#提示  kubeadm join --token ed33ee.b7c7c5303fac4385 192.168.11.1:6443  代表master安装完成</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p>注意：<br>  1.9版本因为提升性能，默认需要关闭swap分区<br>  执行：swapoff -a</p>
+</blockquote>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">#复制配置文件，供kubectl使用</span><br><span class="line">$ mkdir -p $HOME/.kube</span><br><span class="line">$ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">$ sudo chown $(id -u):$(id -g) $HOME/.kube/config</span><br></pre></td></tr></table></figure>
+<ol start="4">
+<li><p>使master节点成为node</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl taint nodes --all node-role.kubernetes.io/master-</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>安装CNI插件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f https://git.io/weave-kube-1.6</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>验证集群安装完成</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get node</span><br><span class="line">NAME         STATUS    AGE       VERSION</span><br><span class="line">kub-master   Ready     1h        v1.7.5</span><br><span class="line"></span><br><span class="line">$ kubectl get pod --all-namespaces</span><br><span class="line">NAMESPACE     NAME                                 READY     STATUS    RESTARTS   AGE</span><br><span class="line">kube-system   etcd-kub-master                      1/1       Running   1          1h</span><br><span class="line">kube-system   kube-apiserver-kub-master            1/1       Running   1          1h</span><br><span class="line">kube-system   kube-controller-manager-kub-master   1/1       Running   1          1h</span><br><span class="line">kube-system   kube-dns-2838158301-vlhf5            3/3       Running   0          51m</span><br><span class="line">kube-system   kube-proxy-0d3t6                     1/1       Running   0          1h</span><br><span class="line">kube-system   kube-scheduler-kub-master            1/1       Running   1          1h</span><br><span class="line">kube-system   weave-net-ptv9f                      2/2       Running   0          1h</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/kubernetes/">kubernetes</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2018/11/10/kafka/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          kafka实战
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+      <a href="/2019/01/11/kubernetesCluster/" class="link-wrap">
+        <strong class="caption">newer</strong>
+        
+        <span class="title">
+          Kubernetes集群高可用安装
+        </span>
+      </a>
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>

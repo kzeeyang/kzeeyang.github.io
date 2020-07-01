@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Kubernetes集群高可用安装 |   Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			Kubernetes集群高可用安装
+		</p>
+		<div class="info">	
+			<time>
+				1月 11, 2019
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">4003
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<p>系统环境为Centos7，至少需要3台机器。这里我只有两台服务器，正常需要2n+1台服务器，否则etcd服务有可能会有选举失败出现。</p>
+<h3 id="安装配置etcd服务"><a href="#安装配置etcd服务" class="headerlink" title="安装配置etcd服务"></a>安装配置etcd服务</h3><p>安装etcd服务<br><a id="more"></a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ yum install -y etcd</span><br><span class="line">#修改etcd配置文件，建立etcd集群</span><br><span class="line">$ vim /etc/etcd/etcd.conf</span><br><span class="line">name: etcd1</span><br><span class="line">date-dir: /var/lib/etcd/default.etcd</span><br><span class="line">listen-client-urls: http://172.16.1.30:2379</span><br><span class="line">advertise-client-urls: http://172.16.1.30:2379</span><br><span class="line">listen-peer-urls: http://172.16.1.30:2380</span><br><span class="line">initial-advertise-peer-urls: http://172.16.1.30:2380</span><br><span class="line">initial-cluster: etcd1=http://172.16.1.30:2380,etcd2=http://172.16.1.25:2380</span><br><span class="line">initial-cluster-state: new</span><br><span class="line">initial-cluster-token: etcd-cluster-token</span><br><span class="line"></span><br><span class="line">#新建立集群时initial-cluster-state参数设置为“new”，建立后存在数据需要修改为“existing”。</span><br></pre></td></tr></table></figure></p>
+<p>测试etcd服务<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># etcdctl --endpoints=http://172.16.1.30:2379 member list</span><br><span class="line">1f5143f6a8454274: name=etcd2 peerURLs=http://172.16.1.25:2380 clientURLs=http://172.16.1.25:2379 isLeader=true</span><br><span class="line">ff807f9b0c3a2dfb: name=etcd1 peerURLs=http://172.16.1.30:2380 clientURLs=http://172.16.1.30:2379 isLeader=false</span><br><span class="line"> </span><br><span class="line"># etcdctl --endpoint http://172.16.1.30:2379 cluster-health</span><br><span class="line">member 1f5143f6a8454274 is healthy: got healthy result from http://172.16.1.25:2379</span><br><span class="line">member ff807f9b0c3a2dfb is healthy: got healthy result from http://172.16.1.30:2379</span><br><span class="line">cluster is healthy</span><br></pre></td></tr></table></figure></p>
+<h3 id="安装配置keepalived服务"><a href="#安装配置keepalived服务" class="headerlink" title="安装配置keepalived服务"></a>安装配置keepalived服务</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"># yum install -y keepalived</span><br><span class="line"> </span><br><span class="line"># vim /etc/keepalived/keepalived.conf</span><br><span class="line">global_defs &#123;</span><br><span class="line">    router_id LVS_k8s</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">vrrp_script CheckK8sMaster &#123;</span><br><span class="line">    script &quot;curl -k https://172.16.1.220:6443&quot;</span><br><span class="line">    interval 3</span><br><span class="line">    timeout 9</span><br><span class="line">    fall 2</span><br><span class="line">    rise 2</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">vrrp_instance VI_1 &#123;</span><br><span class="line">    state MASTER</span><br><span class="line">    interface eth0</span><br><span class="line">    virtual_router_id 61</span><br><span class="line">    priority 120        # 主节点权重最高 依次减少</span><br><span class="line">    advert_int 1</span><br><span class="line">    mcast_src_ip 172.16.1.30</span><br><span class="line">    nopreempt</span><br><span class="line">    authentication &#123;</span><br><span class="line">        auth_type PASS</span><br><span class="line">        auth_pass 1111</span><br><span class="line">    &#125;</span><br><span class="line">    unicast_peer &#123;</span><br><span class="line">        172.16.1.25</span><br><span class="line">    &#125;</span><br><span class="line">    virtual_ipaddress &#123;</span><br><span class="line">        172.16.1.220/16 dev eth0 label eth0:0</span><br><span class="line">    &#125;</span><br><span class="line">    track_script &#123;</span><br><span class="line">        CheckK8sMaster</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="安装kubernetes服务"><a href="#安装kubernetes服务" class="headerlink" title="安装kubernetes服务"></a>安装kubernetes服务</h3><ol>
+<li>修改kubeadm配置文件<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: kubeadm.k8s.io/v1alpha1</span><br><span class="line">kind: MasterConfiguration</span><br><span class="line">kubernetesVersion: v1.9.4</span><br><span class="line">etcd:</span><br><span class="line">  endpoints:</span><br><span class="line">  - http://172.16.1.30:2379</span><br><span class="line">  - http://172.16.1.25:2379</span><br><span class="line">  dataDir: /var/lib/etcd/data</span><br><span class="line">networking:</span><br><span class="line">  podSubnet: 10.96.0.0/16</span><br><span class="line">token: &quot;b99a00.a144ef80536d4344&quot;</span><br><span class="line">tokenTTL: &quot;0s&quot;</span><br><span class="line">api:</span><br><span class="line">  advertiseAddress: &quot;172.16.1.220&quot;</span><br><span class="line">apiServerCertSANs:</span><br><span class="line">- k8s-master</span><br><span class="line">- k8s-node1</span><br><span class="line">- 172.16.1.30</span><br><span class="line">- 172.16.1.25</span><br><span class="line">- 172.16.1.220</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<blockquote>
+<p>注意: 因为需要使用高可用api服务的地址为虚拟地址</p>
+</blockquote>
+<ol start="2">
+<li><p>初始化master节点</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ kubeadm init --config kubeadm-config.yaml</span><br><span class="line">……</span><br><span class="line">……</span><br><span class="line">kubeadm join --token b99a00.a144ef80536d4344 172.16.1.220:6443 --discovery-token-ca-cert-hash sha256:6d2b98e39b60bd411803aaaf99899e66bae95d4b631f4021a7c718396233a0e9</span><br><span class="line"> </span><br><span class="line">$ mkdir -p $HOME/.kube</span><br><span class="line">$ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">$ chown $(id -u):$(id -g) $HOME/.kube/config</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>其他Master节点安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#从主节点中复制pki下生成的秘钥和证书到备用机器上</span><br><span class="line">$ scp -r /etc/kubernetes/pki root@172.16.1.25:/etc/kubernetes/</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#使用与主节点相同的配置文件初始化，初始化完后会显示与主节点相同的token和sha加密串</span><br><span class="line">$ kubeadm init --config kubeadm-config.yaml</span><br><span class="line">……</span><br><span class="line">……</span><br><span class="line">kubeadm join --token b99a00.a144ef80536d4344 172.16.1.220:6443 --discovery-token-ca-cert-hash sha256:6d2b98e39b60bd411803aaaf99899e66bae95d4b631f4021a7c718396233a0e9</span><br><span class="line"></span><br><span class="line">$ mkdir -p $HOME/.kube</span><br><span class="line">$ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">$ chown $(id -u):$(id -g) $HOME/.kube/config</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li><p>安装其他组件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f flannel.yaml</span><br><span class="line">clusterrole &quot;flannel&quot; created</span><br><span class="line">clusterrolebinding &quot;flannel&quot; created</span><br><span class="line">serviceaccount &quot;flannel&quot; created</span><br><span class="line">configmap &quot;kube-flannel-cfg&quot; created</span><br><span class="line">daemonset &quot;kube-flannel-ds&quot; created</span><br><span class="line"> </span><br><span class="line">$ kubectl apply -f heapster-1.5.1/deploy/kube-config/influxdb/</span><br><span class="line">deployment &quot;monitoring-grafana&quot; created</span><br><span class="line">service &quot;monitoring-grafana&quot; created</span><br><span class="line">serviceaccount &quot;heapster&quot; created</span><br><span class="line">deployment &quot;heapster&quot; created</span><br><span class="line">service &quot;heapster&quot; created</span><br><span class="line">deployment &quot;monitoring-influxdb&quot; created</span><br><span class="line">service &quot;monitoring-influxdb&quot; created</span><br><span class="line"> </span><br><span class="line">$ kubectl apply -f heapster-1.5.1/deploy/kube-config/rbac/heapster-rbac.yaml</span><br><span class="line">clusterrolebinding &quot;heapster&quot; created</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置dns支持多节点<br>默认kubedns服务只有一个容器，当运行有kubedns容器的服务挂了，则k8s容器内网不能联通。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl scale --replicas=2 -n kube-system deployment/kube-dns</span><br><span class="line">deployment &quot;kube-dns&quot; scaled</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>查看集群状态</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get node</span><br><span class="line">NAME         STATUS    ROLES     AGE       VERSION</span><br><span class="line">k8s-master1  Ready     master    44m       v1.9.4</span><br><span class="line">k8s-master2  Ready     master    3m        v1.9.4</span><br></pre></td></tr></table></figure></li>
+</ol>
+  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/kubernetes/">kubernetes</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2019/01/11/kubernetes/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          Kubernetes单节点安装
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+      <a href="/2019/01/14/minikube/" class="link-wrap">
+        <strong class="caption">newer</strong>
+        
+        <span class="title">
+          Minikube安装k8s单机调试环境
+        </span>
+      </a>
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>

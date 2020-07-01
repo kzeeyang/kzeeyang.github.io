@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Minikube安装k8s单机调试环境 |   Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			Minikube安装k8s单机调试环境
+		</p>
+		<div class="info">	
+			<time>
+				1月 14, 2019
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">2175
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<p>minikube为开发或者测试在本地启动一个节点的kubernetes集群，minikube打包了和配置一个linux虚拟机、docker与kubernetes组件。给开发者提供充分的环境。</p>
+<p>最近把老笔记本换了Ubuntu系统，现在就以Ubuntu系统为列。</p>
+<h3 id="安装docker环境"><a href="#安装docker环境" class="headerlink" title="安装docker环境"></a>安装docker环境</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#使用docker官方CE源，ce版本的好处这边就不多说了。</span><br><span class="line">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -</span><br><span class="line">$ apt-key fingerprint 0EBFCD88</span><br><span class="line">$ add-apt-repository &quot;deb [arch=amd64] https://download.docker.com/linux/ubuntu(lsb_release -cs) stable&quot;</span><br><span class="line">$ apt-get install docker-ce</span><br></pre></td></tr></table></figure>
+<a id="more"></a>
+<h3 id="安装minikube"><a href="#安装minikube" class="headerlink" title="安装minikube"></a>安装minikube</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">#这里使用阿里的修改版。因为墙的问题，不光google的minikube下不了，连镜像也拉不下来。</span><br><span class="line">$ curl -Lo minikube http://kubernetes.oss-cn-hangzhou.aliyuncs.com/minikube/releases/v0.28.0/minikube-linux-amd64 </span><br><span class="line">$ chmod +x minikube  </span><br><span class="line">$ mv minikube /usr/local/bin/</span><br></pre></td></tr></table></figure>
+<h3 id="安装K8s环境"><a href="#安装K8s环境" class="headerlink" title="安装K8s环境"></a>安装K8s环境</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">#先把k8s客户端工具安装好。</span><br><span class="line">$ apt-get install -y kubectl</span><br><span class="line"></span><br><span class="line">#开始安装环境。</span><br><span class="line">$ minikube start --registry-mirror=https://registry.docker-cn.com</span><br><span class="line">There is a newer version of minikube available (v0.31.0).  Download it here:</span><br><span class="line">https://github.com/kubernetes/minikube/releases/tag/v0.31.0</span><br><span class="line"></span><br><span class="line">To disable this notification, run the following:</span><br><span class="line">minikube config set WantUpdateNotification false</span><br><span class="line">Starting local Kubernetes v1.10.0 cluster...</span><br><span class="line">Starting VM...</span><br><span class="line">Downloading Minikube ISO</span><br><span class="line"> 153.08 MB / 153.08 MB [============================================] 100.00% 0s</span><br><span class="line">Getting VM IP address...</span><br><span class="line">Moving files into cluster...</span><br><span class="line">Downloading kubelet v1.10.0</span><br><span class="line">Downloading kubeadm v1.10.0</span><br><span class="line">Finished Downloading kubeadm v1.10.0</span><br><span class="line">Finished Downloading kubelet v1.10.0</span><br><span class="line">Setting up certs...</span><br><span class="line">Connecting to cluster...</span><br><span class="line">Setting up kubeconfig...</span><br><span class="line">Starting cluster components...</span><br><span class="line">Kubectl is now configured to use the cluster.</span><br><span class="line">Loading cached images from config file.</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>在安装的时候需要注意一下，安装的时候非常占用内存。我的老电脑只有4G内存，完全不够用，都用到交换分区了。建议电脑至少8G内存。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">              总计         已用        空闲      共享    缓冲/缓存    可用</span><br><span class="line">内存：        3921        3277         167          46         475         364</span><br><span class="line">交换：        4047        1504        2543</span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<h3 id="安装完成查看测试环境"><a href="#安装完成查看测试环境" class="headerlink" title="安装完成查看测试环境"></a>安装完成查看测试环境</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get nodes</span><br><span class="line">NAME       STATUS   ROLES    AGE   VERSION</span><br><span class="line">minikube   Ready    master   2m    v1.10.0</span><br><span class="line"></span><br><span class="line">$ kubectl get pods --all-namespaces</span><br><span class="line">NAMESPACE     NAME                                    READY   STATUS    RESTARTS   AGE</span><br><span class="line">kube-system   etcd-minikube                           1/1     Running   0          2m</span><br><span class="line">kube-system   kube-addon-manager-minikube             1/1     Running   0          1m</span><br><span class="line">kube-system   kube-apiserver-minikube                 1/1     Running   0          2m</span><br><span class="line">kube-system   kube-controller-manager-minikube        1/1     Running   0          3m</span><br><span class="line">kube-system   kube-dns-b4bd9576-mdkhx                 3/3     Running   0          2m</span><br><span class="line">kube-system   kube-proxy-js45b                        1/1     Running   0          2m</span><br><span class="line">kube-system   kube-scheduler-minikube                 1/1     Running   0          3m</span><br><span class="line">kube-system   kubernetes-dashboard-685cfbd9f6-5j7lf   1/1     Running   0          1m</span><br><span class="line">kube-system   storage-provisioner                     1/1     Running   0          1m</span><br></pre></td></tr></table></figure>  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/kubernetes/">kubernetes</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2019/01/11/kubernetesCluster/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          Kubernetes集群高可用安装
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+      <a href="/2019/01/16/etcd/" class="link-wrap">
+        <strong class="caption">newer</strong>
+        
+        <span class="title">
+          Etcd使用
+        </span>
+      </a>
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>

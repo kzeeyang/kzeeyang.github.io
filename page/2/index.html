@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          
+
+
+<div class="index slideDownMin">
+	
+
+	<div class="profile">
+
+		<img class="avatar" src="/images/avatar.jpg">
+
+		<p class="author">Lemon</p>
+
+		<div class="social">
+			
+			
+			<a target="_blank" class="links" href="https://github.com/kzeeyang">
+				<i class="iconfont icon-Github">
+			</i></a>
+			
+			
+			<a target="_blank" class="links" href>
+				<i class="iconfont icon-Weibo">
+			</i></a>
+			
+			
+			<a target="_blank" class="links" href>
+				<i class="iconfont icon-Twitter">
+			</i></a>
+			
+			
+			<a target="_blank" class="links" href>
+				<i class="iconfont icon-instagram">
+			</i></a>
+			
+			
+			<a target="_blank" class="links" href>
+				<i class="iconfont icon-Neteasemusic">
+			</i></a>
+			
+			
+			<a target="_blank" class="links" href="/">
+				<i class="iconfont icon-Telegram">
+			</i></a>
+			
+			
+		</div>
+	</div>
+
+
+	
+
+	
+	
+	
+
+<article class="article">		
+	   
+	<div class="article-header">
+	    
+		<a class="title" href="/2018/10/25/wechatReport/">Prometheus微信报警配置</a>  
+	       
+		 
+
+		<div class="meta">
+			<time>10月 25, 2018</time>			
+		</div>
+	</div>
+
+
+	
+
+    
+	<div class="typo article-excerpt">	
+		
+			<p>上篇中我们已经配置好了Prometheus监控报警，报警使用的STMP邮件报警形式。</p>
+<p>现在我们基于之前的配置添加企业微信告警。</p>
+<h3 id="开通企业微信"><a href="#开通企业微信" class="headerlink" title="开通企业微信"></a>开通企业微信</h3><ul>
+<li>注册 <a href="https://work.weixin.qq.com/" target="_blank" rel="noopener">企业微信</a>。
+		  	  
+	</li></ul></div>
+
+
+
+	<div class="article-categories">
+	 
+	</div>
+	
+
+	<div class="article-tags">
+		
+			<i class="iconfont icon-tags" style="margin-right:4px"></i>
+			            
+				<a class="link" href="/tags/Prometheus/">Prometheus</a>           
+			
+		
+	</div>
+
+	<div class="article-bottom">
+		<a class="readmore" href="/2018/10/25/wechatReport/">阅读更多</a> 	
+	</div>	
+    
+</article>
+
+	
+	
+	
+	
+
+<article class="article">		
+	   
+	<div class="article-header">
+	    
+		<a class="title" href="/2018/10/24/prometheus/">Docker部署Prometheus+Alertmanager+Grafana监控及邮件报警</a>  
+	       
+		 
+
+		<div class="meta">
+			<time>10月 24, 2018</time>			
+		</div>
+	</div>
+
+
+	
+
+    
+	<div class="typo article-excerpt">	
+		
+			<h3 id="Prometheus介绍"><a href="#Prometheus介绍" class="headerlink" title="Prometheus介绍"></a>Prometheus介绍</h3><p>Prometheus 是著名开源监控项目，其监控任务调度给具体的服务器，该服务器到目标上抓取监控数据，然后保存在本地的TSDB中。自定义强大的PromQL语言查询实时和历史时序数据，支持丰富的查询组合。<br>Prometheus 1.0版本的TSDB（V2存储引擎）基于LevelDB，并且使用了和Facebook Gorilla一样的压缩算法，能够将16个字节的数据点压缩到平均1.37个字节。<br>Prometheus 2.0版本引入了全新的V3存储引擎，提供了更高的写入和查询性能。本文主要分析该存储引擎设计思路。<br>
+		  	  
+	</p></div>
+
+
+
+	<div class="article-categories">
+	 
+	</div>
+	
+
+	<div class="article-tags">
+		
+			<i class="iconfont icon-tags" style="margin-right:4px"></i>
+			            
+				<a class="link" href="/tags/Prometheus/">Prometheus</a>           
+			            
+				<a class="link" href="/tags/Docker/">Docker</a>           
+			            
+				<a class="link" href="/tags/Grafana/">Grafana</a>           
+			
+		
+	</div>
+
+	<div class="article-bottom">
+		<a class="readmore" href="/2018/10/24/prometheus/">阅读更多</a> 	
+	</div>	
+    
+</article>
+
+	
+	
+
+	
+	
+ 
+   <nav class="paginator">
+    
+        <a class="prev" href="/"> 
+            <i class="iconfont icon-left"></i>
+            上一页
+        </a>
+    
+
+   <span class="page-number"> Page <strong>2</strong>, Posts <strong>12</strong>. </span>
+
+    
+  </nav> 
+
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+</div>
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>

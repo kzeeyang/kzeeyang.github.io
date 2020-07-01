@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  K8s-Informer监控实践 |   Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			k8s-informer监控实践
+		</p>
+		<div class="info">	
+			<time>
+				1月 30, 2019
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">2697
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<h3 id="Informer介绍"><a href="#Informer介绍" class="headerlink" title="Informer介绍"></a>Informer介绍</h3><p>Informer是Client-go中的一个核心工具包。在Kubernetes源码中，如果Kubernetes的某个组件，需要List/Get Kubernetes中的Objec，在绝大多数情况下，会直接使用Informer实例中的Lister()方法（该方法包含了Get和List方法），而很少直接请求Kubernetes API。Informer最基本的功能就是List/Get Kubernetes中的Object。<br>Client-go的首要目标是满足Kubernetes的自身需求。Informer作为其中的核心工具包，面对Kubernetes极为复杂业务逻辑，如果仅实现List/Get功能，根本无法满足Kubernetes自身需求。因此Informer被设计为一个灵活而复杂的工具包，除List/Get Object外，Informer还可以监听事件并触发回调函数等，以实现更加复杂的业务逻辑。<br><a id="more"></a></p>
+<h3 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h3><ol>
+<li><p>创建一个Client端</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getClient</span><span class="params">(pathToCfg <span class="keyword">string</span>)</span> <span class="params">(*kubernetes.Clientset, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> config *rest.Config</span><br><span class="line">	<span class="keyword">var</span> err error</span><br><span class="line">	<span class="keyword">if</span> pathToCfg == <span class="string">""</span> &#123;</span><br><span class="line">		logrus.Info(<span class="string">"Using in cluster config"</span>)</span><br><span class="line">		config, err = rest.InClusterConfig()</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		logrus.Info(<span class="string">"Using out of cluster config"</span>)</span><br><span class="line">		config, err = clientcmd.BuildConfigFromFlags(<span class="string">""</span>, pathToCfg)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> kubernetes.NewForConfig(config)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>使用Clientset获取节点</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">nodes, err := clientset.Core().Nodes().List(v1.ListOptions&#123;FieldSelector: <span class="string">"metadata.name=minikube"</span>&#125;)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">  logrus.Warnf(<span class="string">"Failed to poll the nodes: %v"</span>, err)</span><br><span class="line">  <span class="keyword">continue</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> <span class="built_in">len</span>(nodes.Items) &gt; <span class="number">0</span> &#123;</span><br><span class="line">  node := nodes.Items[<span class="number">0</span>]</span><br><span class="line">  node.Annotations[<span class="string">"checked"</span>] = <span class="string">"true"</span></span><br><span class="line">  _, err := clientset.Core().Nodes().Update(&amp;node)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logrus.Warnf(<span class="string">"failed to update the node: %v"</span>, err)</span><br><span class="line">    <span class="keyword">continue</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>使用Informer来进行监控/通知<br>这里使用SharedInformer。这样一来你不用再一个一个为每个控制器配上Informer，只需要注册一个Shared informer即可，并且让每个控制器注册自己的一组回调函数，返回共享缓存，这可以减少内存占用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">watchList := cache.NewListWatchFromClient(clientset.Core().RESTClient(), <span class="string">"nodes"</span>, v1.NamespaceAll,</span><br><span class="line">		fields.Everything())</span><br><span class="line">store, controller = cache.NewInformer(</span><br><span class="line">  watchList,</span><br><span class="line">  &amp;api.Node&#123;&#125;,</span><br><span class="line">  time.Second*<span class="number">30</span>,</span><br><span class="line">  cache.ResourceEventHandlerFuncs&#123;</span><br><span class="line">    AddFunc:    handleNodeAdd,</span><br><span class="line">    UpdateFunc: handleNodeUpdate,</span><br><span class="line">  &#125;,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">stop := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"><span class="keyword">go</span> controller.Run(stop)</span><br><span class="line"></span><br><span class="line">informer := cache.NewSharedIndexInformer(</span><br><span class="line">  watchList,</span><br><span class="line">  &amp;api.Node&#123;&#125;,</span><br><span class="line">  time.Second*<span class="number">10</span>,</span><br><span class="line">  cache.Indexers&#123;&#125;,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">informer.AddEventHandler(cache.ResourceEventHandlerFuncs&#123;</span><br><span class="line">  AddFunc:    handleNodeAdd,</span><br><span class="line">  UpdateFunc: handleNodeUpdate,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="部署测试"><a href="#部署测试" class="headerlink" title="部署测试"></a>部署测试</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ go build </span><br><span class="line">$ ./kube-informer --config ~/.kube/config </span><br><span class="line">INFO[0000] Using out of cluster config                  </span><br><span class="line">INFO[0000] node [minikube] is added; checking resources... </span><br><span class="line">INFO[0000] node [minikube] storage occupied by images changed. Old value: [0 B], new value: [1.1 GB] </span><br><span class="line">INFO[0000] No changes in node [minikube] storage occupied by images </span><br><span class="line">INFO[0008] No changes in node [minikube] storage occupied by images </span><br><span class="line">INFO[0010] No changes in node [minikube] storage occupied by images</span><br></pre></td></tr></table></figure>
+<h3 id="Pod测试"><a href="#Pod测试" class="headerlink" title="Pod测试"></a>Pod测试</h3><blockquote>
+<p>这里创建deploy之前，需要先配置RBAC。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f kubecon-deployment.yaml </span><br><span class="line">deployment.extensions/kubeinformer-demo created</span><br><span class="line"></span><br><span class="line">$ kubectl get pod </span><br><span class="line">NAME                                 READY   STATUS        RESTARTS   AGE</span><br><span class="line">kubeinformer-demo-644f958d99-5s4pq   1/1     Running       0          11s</span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<blockquote>
+<p>看到’msg=”Using in cluster config”‘信息已经是在k8s集群内部了。<br><img src="./2019-01-30 11-03-31屏幕截图.png" alt></p>
+</blockquote>
+  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/kubernetes/">kubernetes</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2019/01/29/k8s-api/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          k8s自定义API开发
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+      <a href="/2019/02/10/drone/" class="link-wrap">
+        <strong class="caption">newer</strong>
+        
+        <span class="title">
+          Drone CI/CD部署
+        </span>
+      </a>
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>

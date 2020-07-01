@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  k8s自定义API开发 |   Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			k8s自定义API开发
+		</p>
+		<div class="info">	
+			<time>
+				1月 29, 2019
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">5715
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<h3 id="CRD简介"><a href="#CRD简介" class="headerlink" title="CRD简介"></a>CRD简介</h3><p>CustomResourceDefinition（CRD）是 v1.7 + 新增的无需改变代码就可以扩展Kubernetes API的机制，用来管理自定义对象。它实际上是ThirdPartyResources（TPR）的升级版本，而 TPR 已经在 v1.8 中删除。<br><a id="more"></a></p>
+<h3 id="CRD控制器"><a href="#CRD控制器" class="headerlink" title="CRD控制器"></a>CRD控制器</h3><p>在使用CRD扩展Kubernetes API时，通常还需要实现一个新建资源的控制器，监听改资源的变化情况，并作进一步的处理。官方提供的示例项目<a href="https://github.com/kubernetes/sample-apiserver" target="_blank" rel="noopener">sample-controller</a>。<br>这个例子主要讲述了以下几个方面：</p>
+<ul>
+<li>如何使用自定义资源定义注册Foo类型的新自定义资源（自定义资源类型）</li>
+<li>如何创建/获取/列出新资源类型Foo实例</li>
+<li>如何在资源处理创建/更新/删除事件上设置控制器<br>编写crd controller之前，一定要使用k8s官方提供的代码生成工具k8s.io/code-generator去生成client, informers, listers and deep-copy函数。不仅代码风格符合k8s，而且减少出错和减少工作量都是有很大的帮助。</li>
+</ul>
+<p>下面通过<a href="https://github.com/openshift-evangelists/crd-code-generation" target="_blank" rel="noopener">crd-code-generation</a>来分析k8s api的开发。</p>
+<h3 id="K8s开发环境配置"><a href="#K8s开发环境配置" class="headerlink" title="K8s开发环境配置"></a>K8s开发环境配置</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ mkdir $GOPATH/src/k8s.io</span><br><span class="line">$ cd $GOPATH/src/k8s.io</span><br><span class="line">#其他依赖库一样安装这个路径</span><br><span class="line">$ git clone https://github.com/kubernetes/code-generator.git</span><br><span class="line">#安装代码生成工具</span><br><span class="line">$ cd code-generator</span><br><span class="line">$ go install ./cmd/&#123;defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="代码及注释"><a href="#代码及注释" class="headerlink" title="代码及注释"></a>代码及注释</h3><p>doc.go<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// +k8s:deepcopy-gen=package</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Package v1 is the v1 version of the API.</span></span><br><span class="line"><span class="comment">// +groupName=example.com</span></span><br><span class="line"><span class="keyword">package</span> v1</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>&lt;tag_name&gt;[=value]格式的注释，是Kubernetes进行代码生成要用的Annotation风格的注释<br>+k8s:deepcopy-gen=package 的意思是请为整个v1包里的所有类型定义自动生成Deepcopy方法，如果资源类型不需要该方法的话，可以在其local tag中使用+k8s:deepcopy-gen=false,<br>+groupName=example.com 定义了这个包对应的API组的名称<br>这些定义在doc.go文件的注释，起到的是全局的代码生成控制的作用，所以也被称为Global Tags</li>
+</ul>
+<p>types.go<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> v1</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	metav1 <span class="string">"k8s.io/apimachinery/pkg/apis/meta/v1"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// +genclient</span></span><br><span class="line"><span class="comment">// +genclient:noStatus</span></span><br><span class="line"><span class="comment">// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Database describes a database.</span></span><br><span class="line"><span class="keyword">type</span> Database <span class="keyword">struct</span> &#123;</span><br><span class="line">	metav1.TypeMeta   <span class="string">`json:",inline"`</span></span><br><span class="line">	metav1.ObjectMeta <span class="string">`json:"metadata,omitempty"`</span></span><br><span class="line"></span><br><span class="line">	Spec DatabaseSpec <span class="string">`json:"spec"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// DatabaseSpec is the spec for a Foo resource</span></span><br><span class="line"><span class="keyword">type</span> DatabaseSpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	User     <span class="keyword">string</span> <span class="string">`json:"user"`</span></span><br><span class="line">	Password <span class="keyword">string</span> <span class="string">`json:"password"`</span></span><br><span class="line">	Encoding <span class="keyword">string</span> <span class="string">`json:"encoding,omitempty"`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// DatabaseList is a list of Database resources</span></span><br><span class="line"><span class="keyword">type</span> DatabaseList <span class="keyword">struct</span> &#123;</span><br><span class="line">	metav1.TypeMeta <span class="string">`json:",inline"`</span></span><br><span class="line">	metav1.ListMeta <span class="string">`json:"metadata"`</span></span><br><span class="line"></span><br><span class="line">	Items []Database <span class="string">`json:"items"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>+genclient 指请为下面这个API资源类型生成Client代码<br>+genclient:noStatus 指在这个API资源类型定义里，没有Status字段，否则生成的Client就会自动带上UpdateStatus<br>Database类型定义方法和标准的Kubernetes对象一样，都包括的TypeMeta(API 元数据)和OgjectMeta(对象元数据)字段。而其中的Spec字段是需要自己定义的部分，在DatabaseSpec里，定义了User，Password,Encoding字段，其中，每个字段最后面的部分，比如 json:”user”，指的就是这个字段被转换成JOSN格式之后的名字，也就是YAML文件里字段的名称<br>除了定义一个Database类型，还需要定义一个Database类型用来描述一组Database对象应该包括哪些字段。因为在Kubernetes中，获取所有X对象的List()方法，返回值都是List类型，而不是X类型的数组。+genclient只需要写在Database上，而不用写在DatabaseList上，因为DatabaseList只是一个返回值类型，Database才是主类型。<br>+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object 指请在生成DeepCopy时，实现Kubernetes提供的runtime.Object接口</p>
+<p>register.go<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> v1</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	metav1 <span class="string">"k8s.io/apimachinery/pkg/apis/meta/v1"</span></span><br><span class="line">	<span class="string">"k8s.io/apimachinery/pkg/runtime"</span></span><br><span class="line">	<span class="string">"k8s.io/apimachinery/pkg/runtime/schema"</span></span><br><span class="line"></span><br><span class="line">	examplecom <span class="string">"github.com/openshift-evangelists/crd-code-generation/pkg/apis/example.com"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// SchemeGroupVersion is group version used to register these objects</span></span><br><span class="line"><span class="keyword">var</span> SchemeGroupVersion = schema.GroupVersion&#123;Group: examplecom.GroupName, Version: <span class="string">"v1"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Resource takes an unqualified resource and returns a Group qualified GroupResource</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Resource</span><span class="params">(resource <span class="keyword">string</span>)</span> <span class="title">schema</span>.<span class="title">GroupResource</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> SchemeGroupVersion.WithResource(resource).GroupResource()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	<span class="comment">// localSchemeBuilder and AddToScheme will stay in k8s.io/kubernetes.</span></span><br><span class="line">	SchemeBuilder      runtime.SchemeBuilder</span><br><span class="line">	localSchemeBuilder = &amp;SchemeBuilder</span><br><span class="line">	AddToScheme        = localSchemeBuilder.AddToScheme</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// We only register manually written functions here. The registration of the</span></span><br><span class="line">	<span class="comment">// generated functions takes place in the generated files. The separation</span></span><br><span class="line">	<span class="comment">// makes the code compile even when the generated files are missing.</span></span><br><span class="line">	localSchemeBuilder.Register(addKnownTypes)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Adds the list of known types to api.Scheme.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">addKnownTypes</span><span class="params">(scheme *runtime.Scheme)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	scheme.AddKnownTypes(SchemeGroupVersion,</span><br><span class="line">		&amp;Database&#123;&#125;,</span><br><span class="line">		&amp;DatabaseList&#123;&#125;,</span><br><span class="line">	)</span><br><span class="line">	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>registry的作用就是注册一个类型给APIServer。其中Database资源类型待在服务器端的注册工作，APIServer会自动完成。但要让客户端知道这个Database资源类型的定义，就需要我们在项目里添加一个register.go文件。</p>
+<h3 id="生成代码"><a href="#生成代码" class="headerlink" title="生成代码"></a>生成代码</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line">$ $GOPATH/src/k8s.io/code-generator/generate-groups.sh all crd-code-generation/pkg/client crd-code-generation/pkg/apis example.com:v1</span><br><span class="line">Generating deepcopy funcs</span><br><span class="line">Generating clientset for example.com:v1 at crd-code-generation/pkg/client/clientset</span><br><span class="line">Generating listers for example.com:v1 at crd-code-generation/pkg/client/listers</span><br><span class="line">Generating informers for example.com:v1 at crd-code-generation/pkg/client/informers</span><br><span class="line">$ tree pkg</span><br><span class="line">pkg/</span><br><span class="line">├── apis</span><br><span class="line">│   └── example.com</span><br><span class="line">│       ├── register.go</span><br><span class="line">│       └── v1</span><br><span class="line">│           ├── doc.go</span><br><span class="line">│           ├── register.go</span><br><span class="line">│           ├── types.go</span><br><span class="line">│           └── zz_generated.deepcopy.go</span><br><span class="line">└── client</span><br><span class="line">    ├── clientset</span><br><span class="line">    │   └── versioned</span><br><span class="line">    │       ├── clientset.go</span><br><span class="line">    │       ├── doc.go</span><br><span class="line">    │       ├── fake</span><br><span class="line">    │       │   ├── clientset_generated.go</span><br><span class="line">    │       │   ├── doc.go</span><br><span class="line">    │       │   └── register.go</span><br><span class="line">    │       ├── scheme</span><br><span class="line">    │       │   ├── doc.go</span><br><span class="line">    │       │   └── register.go</span><br><span class="line">    │       └── typed</span><br><span class="line">    │           ├── example</span><br><span class="line">    │           │   └── v1</span><br><span class="line">    │           │       ├── database.go</span><br><span class="line">    │           │       ├── doc.go</span><br><span class="line">    │           │       ├── example_client.go</span><br><span class="line">    │           │       ├── fake</span><br><span class="line">    │           │       │   ├── doc.go</span><br><span class="line">    │           │       │   ├── fake_database.go</span><br><span class="line">    │           │       │   └── fake_example_client.go</span><br><span class="line">    │           │       └── generated_expansion.go</span><br><span class="line">    │           └── example.com</span><br><span class="line">    │               └── v1</span><br><span class="line">    │                   ├── database.go</span><br><span class="line">    │                   ├── doc.go</span><br><span class="line">    │                   ├── example.com_client.go</span><br><span class="line">    │                   ├── fake</span><br><span class="line">    │                   │   ├── doc.go</span><br><span class="line">    │                   │   ├── fake_database.go</span><br><span class="line">    │                   │   └── fake_example.com_client.go</span><br><span class="line">    │                   └── generated_expansion.go</span><br><span class="line">    ├── informers</span><br><span class="line">    │   └── externalversions</span><br><span class="line">    │       ├── example</span><br><span class="line">    │       │   ├── interface.go</span><br><span class="line">    │       │   └── v1</span><br><span class="line">    │       │       ├── database.go</span><br><span class="line">    │       │       └── interface.go</span><br><span class="line">    │       ├── example.com</span><br><span class="line">    │       │   ├── interface.go</span><br><span class="line">    │       │   └── v1</span><br><span class="line">    │       │       ├── database.go</span><br><span class="line">    │       │       └── interface.go</span><br><span class="line">    │       ├── factory.go</span><br><span class="line">    │       ├── generic.go</span><br><span class="line">    │       └── internalinterfaces</span><br><span class="line">    │           └── factory_interfaces.go</span><br><span class="line">    └── listers</span><br><span class="line">        ├── example</span><br><span class="line">        │   └── v1</span><br><span class="line">        │       ├── database.go</span><br><span class="line">        │       └── expansion_generated.go</span><br><span class="line">        └── example.com</span><br><span class="line">            └── v1</span><br><span class="line">                ├── database.go</span><br><span class="line">                └── expansion_generated.go</span><br></pre></td></tr></table></figure>
+  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/kubernetes/">kubernetes</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2019/01/16/etcd/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          Etcd使用
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+      <a href="/2019/01/30/k8s-informer/" class="link-wrap">
+        <strong class="caption">newer</strong>
+        
+        <span class="title">
+          k8s-informer监控实践
+        </span>
+      </a>
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>

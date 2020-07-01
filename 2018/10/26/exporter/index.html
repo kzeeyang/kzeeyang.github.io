@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  使用Go语言开发Prometheus Exporter |   Lemon </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			使用Go语言开发Prometheus exporter
+		</p>
+		<div class="info">	
+			<time>
+				10月 26, 2018
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">2048
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<h3 id="Exporter介绍"><a href="#Exporter介绍" class="headerlink" title="Exporter介绍"></a>Exporter介绍</h3><p>在 Prometheus 中负责数据汇报的程序统一叫做 Exporter, 而不同的 Exporter 负责不同的业务。 它们具有统一命名格式，即 xx_exporter，例如负责主机信息收集的 node_exporter。<br>由于在公司业务中使用的 Apache Traffic server 服务，没有开源的 exporter 服务，所以我要自己写一个 exporter 来监控服务状态。<br><a id="more"></a></p>
+<h3 id="Exporter格式类型"><a href="#Exporter格式类型" class="headerlink" title="Exporter格式类型"></a>Exporter格式类型</h3><ul>
+<li><p>注释<br>文本内容，如果以 # 开头通常表示注释。</p>
+<ul>
+<li>以 # HELP 开头表示 metric 帮助说明。</li>
+<li>以 # TYPE 开头表示定义 metric 类型，包含 counter, gauge, histogram, summary, 和 untyped 类型。</li>
+<li>其他表示一般注释，供阅读使用，将被 Prometheus 忽略。</li>
+</ul>
+</li>
+<li><p>采样数据格式</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">metric_name [</span><br><span class="line">&quot;&#123;&quot; label_name &quot;=&quot; `&quot;` label_value `&quot;` &#123; &quot;,&quot; label_name &quot;=&quot; `&quot;` label_value `&quot;` &#125; [ &quot;,&quot; ] &quot;&#125;&quot;</span><br><span class="line">] value [ timestamp ]</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Exporter数据类型<br>  Prometheus 时序数据分为 Counter, Gauge, Histogram, Summary 四种类型。</p>
+<ol>
+<li>Counter<br>Counter 表示收集的数据是按照某个趋势（增加／减少）一直变化的，我们往往用它记录服务请求总量、错误总数等。</li>
+<li>Gauge<br>Gauge 表示搜集的数据是一个瞬时的值，与时间没有关系，可以任意变高变低，往往可以用来记录内存使用率、磁盘使用率等。</li>
+<li>Histogram<br>Histogram 由 <basename>_bucket{le=”<upper inclusive bound>“}，<basename>_bucket{le=”+Inf”}, <basename>_sum，<basename>_count 组成，主要用于表示一段时间范围内对数据进行采样（通常是请求持续时间或响应大小），并能够对其指定区间以及总数进行统计，通常它采集的数据展示为直方图。</basename></basename></basename></upper></basename></li>
+<li>Summary<br>Summary 和 Histogram 类似，由 <basename>{quantile=”&lt;φ&gt;”}，<basename>_sum，<basename>_count 组成，主要用于表示一段时间内数据采样结果（通常是请求持续时间或响应大小），它直接存储了 quantile 数据，而不是根据统计区间计算出来的。<h4 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h4>Histogram 与 Summary</basename></basename></basename></li>
+<li>采样数据的总和应表示为 x_sum。</li>
+<li>采样数据的总量应表示为 x_count。</li>
+<li>summary 类型的采样数据的 quantile 应表示为 x{quantile=”y”}。</li>
+<li>histogram 类型的采样分区统计数据将表示为 x_bucket{le=”y”}。</li>
+<li>histogram 类型的采样必须包含 x_bucket{le=”+Inf”}, 它的值等于 x_count 的值。</li>
+<li>summary 和 historam 中 quantile 和 le 必需按从小到大顺序排列。</li>
+<li>两者都包含 <basename>_sum，<basename>_count</basename></basename></li>
+<li>Histogram 需要通过 <basename>_bucket 计算 quantile, 而 Summary 直接存储了quantile 的值。</basename></li>
+</ol>
+</li>
+</ul>
+<h3 id="Golang-Sample-exporter-样例"><a href="#Golang-Sample-exporter-样例" class="headerlink" title="Golang Sample_exporter 样例"></a>Golang Sample_exporter 样例</h3><ul>
+<li><p>官方样例</p>
+  <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"flag"</span></span><br><span class="line">    <span class="string">"log"</span></span><br><span class="line">    <span class="string">"net/http"</span></span><br><span class="line"></span><br><span class="line">    <span class="string">"github.com/prometheus/client_golang/prometheus/promhttp"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> addr = flag.String(<span class="string">"listen-address"</span>, <span class="string">":8080"</span>, <span class="string">"The address to listen on for HTTP requests."</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    flag.Parse()</span><br><span class="line">    http.Handle(<span class="string">"/metrics"</span>, promhttp.Handler())</span><br><span class="line">    log.Fatal(http.ListenAndServe(*addr, <span class="literal">nil</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是官方给出了样例，提供了一个http服务，访问路径是 “/metrics”。<br>这个样例没有监控任何东西，默认的只是监控的本机了 Golang 运行环境。</p>
+</li>
+</ul>
+<h3 id="Traffic-exporter-编写"><a href="#Traffic-exporter-编写" class="headerlink" title="Traffic_exporter 编写"></a>Traffic_exporter 编写</h3><p>公司使用的 Apache Traffic Server 服务插件中提供了一个状态查询地址，返回内容为 json 格式。我只需要请求这个地址获取状态信息，再使用 Prometheus 官方提供的 client_golang 包把数据格式化对外提供。<br>完整的代码地址：<a href="https://github.com/kzeeyang/exporter-study/blob/master/traffic_exporter/exporter.go" target="_blank" rel="noopener">https://github.com/kzeeyang/exporter-study/blob/master/traffic_exporter/exporter.go</a></p>
+<h3 id="Grafana-监控ATS服务"><a href="#Grafana-监控ATS服务" class="headerlink" title="Grafana 监控ATS服务"></a>Grafana 监控ATS服务</h3><p>  Grafana 官方的 ATS 模板中监控字段与自己定义的并不匹配，需要自己修改监控字段。<br>  <img src="./grafana-trafficserver.png" alt></p>
+  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/Golang/">Golang</a> <a class="tag-link" href="/tags/Prometheus/">Prometheus</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2018/10/25/wechatReport/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          Prometheus微信报警配置
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+      <a href="/2018/11/10/kafka/" class="link-wrap">
+        <strong class="caption">newer</strong>
+        
+        <span class="title">
+          kafka实战
+        </span>
+      </a>
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			Lemon
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
