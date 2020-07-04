@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  
+  
+  <title>  Flutter及Widget |   kzeeyang&#39;s blog </title>
+
+ 
+  
+    <link rel="icon" href="/images/favicon.png">
+  
+
+
+  <link rel="stylesheet" href="/nayo.min.css"> 
+</head>  
+  <body>   
+    
+      <header class="header-wrapper">
+
+  <nav class="inner">
+    <div class="title">
+      <a href="/">
+        <img class="logo" src="/images/logo.png">
+      </a>
+    </div>
+
+    <ul class="menu">
+      
+      
+      <li class="item">
+        <a class="link" id="menu-home" href="/">
+          <i class="iconfont icon-home">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-archives" href="/archives">
+          <i class="iconfont icon-archives">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-tags" href="/tags">
+          <i class="iconfont icon-tags">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-about" href="/about">
+          <i class="iconfont icon-about">
+        </i></a>
+      </li>
+      
+      
+      
+      <li class="item">
+        <a class="link" id="menu-search">
+          <i class="iconfont icon-search">
+        </i></a>
+        
+
+        
+      
+    </li></ul>
+  </nav>
+</header>
+
+<header class="mobile-header-wrapper">
+  <i id="mobile-toggle" class="iconfont icon-menu mobile-toggle"></i>
+</header>   
+
+      <div class="container">       
+          
+          
+            <div class="container-inner">  
+          
+
+          <article class="post slideDownMin">
+  
+	
+<div class="header">
+		<p class="title">	
+			Flutter及Widget
+		</p>
+		<div class="info">	
+			<time>
+				7月 04, 2020
+			</time>
+
+			
+			
+				<i class="iconfont icon-words"></i>
+				<span class="words">2215
+				</span>
+			
+		</div>
+</div> 
+	
+
+    <script type="text/x-mathjax-config">
+        var post = document.getElementsByClassName("post")[0];  
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            messageStyle: "none",    
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] , ["\\(","\\)"]],
+                displayMath: [ ["$$","$$"] , ["\\[","\\]"]],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+            },
+            "HTML-CSS": {            
+                showMathMenu: false
+            }
+        });
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,post]);
+    </script>
+    <style>.MathJax{outline:0;}</style>
+
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.2/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+ 
+
+	  <div class="typo post-content ">
+
+		
+
+			
+					<h3 id="Flutter性能对比"><a href="#Flutter性能对比" class="headerlink" title="Flutter性能对比"></a>Flutter性能对比</h3><p><img src="./flutter.png" alt></p>
+<p>一个安卓的原生APP在绘图的时候，要先调用Android框架的Java代码，然后再调用skia（c/c++）绘图引擎代码，最后生成的CPU或者gpu的指令，在设备上完成绘图。而flutter的APP在绘图的时候，是先调用flutter框架的dart代码，然后直接调用skia（c/c++）代码，从上图可以看出flutter框架代码完全取代了Android的Java代码，所以只要flutter框架dart代码的效率可以媲美原生框架的Java代码的时候，那么flutter的性能就可以媲美原生APP(有一个Google爸爸的疼爱是多么的幸福)。其他跨平台框架，比如react native，它首先要调用框架本身的JavaScript代码，然后再调用Android框架的Java代码，然后调用skia，这比原生的APP严格多出了一个步骤，所以它的这个性能肯定是不及原生的，但是在flutter app中并不是这样。<br><a id="more"></a></p>
+<p>另外值得注意的是在安卓的原生APP，或者其他的跨平台框架中，skia都是安卓操作系统的一部分，只有当安卓的操作系统升级的时候，skia才会升级，而flutter，skia是作为是flutter SDK的一部分，是要flutter SDK升级，skia随之就会升级，所以当skia最近有一些性能上的改进，那么flutter app很快就会得到性能上的改进，而对于其他的跨平台框架或者原生的安卓应用，要等到系统升级，对于比较老旧的安卓设备升级的时间不确定。</p>
+<h3 id="Flutter-Widget"><a href="#Flutter-Widget" class="headerlink" title="Flutter Widget"></a>Flutter Widget</h3><p>Flutter widget 的设计思想跟 Android 略有不同，Flutter 中的 widget 可以用两条规则来约束：</p>
+<ul>
+<li>一切都是 widget</li>
+<li>每个 widget 只负责自己关注的部分</li>
+</ul>
+<p>第一条意味着你所看到的东西都是由于 widget 构成，跟安卓不同的是，原本在安卓中一些参数相关的东西到了 Futter 中都被 widget 化，例如大小、背景、margin、padding 等等原本只需要一个参数设置的东西对应到 Flutter 中都映射成了 widget。<br>第二条的意思是，每个 widget 应该仅负责自己的职责所在，比如文本框 Text 组件，只负责如何显示一个文本，其他一概不管，不用考虑自己的大小、位置、margin 等等，这些由别的专门负责此功能的 widget 来控制。作为一个文本框就应该有文本框的觉悟。</p>
+<p>举个栗子，我们希望显示一个文本时一个 Text 控件既可，但如果想控制它的大小、边距、位置这些属性就需要外面包一个 Container 来控制了。</p>
+<h3 id="两种-Widget"><a href="#两种-Widget" class="headerlink" title="两种 Widget"></a>两种 Widget</h3><p>Flutter 中 Widget分为两种：</p>
+<ul>
+<li><p>StatelessWidget<br>StatelessWidget 表示不可变的 widget，例如一些固定的标题、Icon 等等，widget 的特征不会在运行时发生变化。</p>
+</li>
+<li><p>StatefulWidget<br>StatefulWidget 相反，其属性可能会在运行时发生变化，例如进度条、输入框等等。</p>
+</li>
+</ul>
+<h3 id="Widget-使用"><a href="#Widget-使用" class="headerlink" title="Widget 使用"></a>Widget 使用</h3><ul>
+<li><p>StatelessWidget<br>在使用上，StatelessWidget 会通过 build 方法创建一个不可变的 widget，这样 widget 只需要绘制一次。我们在使用时直接继承它然后实现 build 方法既可。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">StatelessText</span> <span class="keyword">extends</span> <span class="title">StatelessWidget</span></span>&#123;</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> Text(<span class="string">"Stateless"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>StatefulWidget<br>而 StatefulWidget 中需要包含一个 State 对象来表现不同的状态，首先使用 createState 方法创建一个 State 对象，再通过 State 中的 build 方法创建一个 widget，后面每次状态变化时都会调用 build 方法重新绘制一个 widget。我们可以使用 setState 方法来触发 widget 更新。</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">EnableButton</span> <span class="keyword">extends</span> <span class="title">StatefulWidget</span> </span>&#123;</span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">bool</span> enable;</span><br><span class="line">  EnableButton(<span class="keyword">this</span>.enable);</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  State&lt;StatefulWidget&gt; createState() &#123;</span><br><span class="line">    <span class="keyword">return</span> ButtonState(enable);<span class="comment">//返回一个 State 对象</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ButtonState</span> <span class="keyword">extends</span> <span class="title">State</span>&lt;<span class="title">EnableButton</span>&gt; </span>&#123;</span><br><span class="line">  <span class="built_in">bool</span> enable;</span><br><span class="line">  ButtonState(<span class="keyword">this</span>.enable);</span><br><span class="line">  <span class="meta">@override</span></span><br><span class="line">  Widget build(BuildContext context) &#123;</span><br><span class="line">    <span class="keyword">return</span> RaisedButton(</span><br><span class="line">        onPressed: ()&#123;</span><br><span class="line">          setState(() &#123;</span><br><span class="line">            enable = !enable;</span><br><span class="line">          &#125;);</span><br><span class="line">        &#125;,</span><br><span class="line">        child: Text(enable ? <span class="string">"Enable"</span> : <span class="string">"Disable"</span>,</span><br><span class="line">            style: TextStyle(color: enable ? Colors.red : Colors.grey)));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+  	
+					
+	  </div>     
+	  
+
+	<div class="bottom">
+  <div class="other">
+    <div class="meta">
+      
+
+      
+      <i class="iconfont icon-tag"></i>
+      <a class="tag-link" href="/tags/Dart/">Dart</a> <a class="tag-link" href="/tags/flutter/">flutter</a> <a class="tag-link" href="/tags/前端/">前端</a>
+      
+    </div>
+
+    <div class="operate">
+      
+      <span class="text">Share</span>
+      <ul class="share">
+	   			             
+        <li class="iconfont 
+		icon-share-qq 
+		-mob-share-qq 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weixin 
+		-mob-share-weixin 
+		item"></li>		
+   	   			             
+        <li class="iconfont 
+		icon-share-weibo 
+		-mob-share-weibo 
+		item"></li>		
+   	   
+</ul>	
+
+<script id="-mob-share" src="https://f1.webshare.mob.com/code/mob-share.js?appkey=21d601593a1de"></script>
+      
+    </div>
+  </div>
+
+
+  
+  <nav class="nav">
+    <div class="link">
+      
+      <a href="/2020/06/30/Dart/" class="link-wrap">
+        <strong class="caption">older</strong>
+        
+        <span class="title">
+          Dart基本语法使用
+        </span>
+      </a>
+      
+    </div>
+    <div class="link">
+      
+    </div>
+  </nav>
+  
+</div> 
+	
+<div class="comment">
+
+    
+
+    <div id="comment">
+    </div>
+
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+    <script src="//unpkg.com/valine@v1.1.8-beta/dist/Valine.min.js"></script>
+
+    <script>
+        new Valine({
+            el: '#comment',
+            notify: false,
+            verify: false,
+            app_id: 'cFM0eCo0CQ9xmBXmHi1eltol-gzGzoHsz',
+            app_key: 'oh9tizsnvV2vNvWgqEvoNtQO',
+            path: window.location.pathname,
+            avatar: 'mm',
+            guest_info: ['nick', 'mail']
+        });
+    </script>
+    
+</div>	
+</article>
+
+          </div> 
+      </div>            
+    
+        <i id="toTop" class="iconfont icon-backtotop"></i>
+
+  
+    <div class="none" id="search">
+    <div class="header">
+        <input type="text" placeholder="输入你想搜索的" id="search-input" class="input">
+        
+        <i id="search-cancel" class="iconfont icon-cancel"></i>
+    </div>
+
+    <div id="search-result" class="result"></div>
+</div>
+     <div class="mobile-menu">      
+
+      
+      <img class="mobile-menu-icon" src="/images/favicon.png">  
+      
+
+         
+            
+
+            <a class="mobile-menu-link" href="/">首页
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/archives">归档
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/tags">标签
+            </a>
+            
+         
+            
+
+            <a class="mobile-menu-link" href="/about">关于
+            </a>
+            
+         
+                          
+
+            <a class="mobile-menu-link mobile-menu-search" href="#">搜索 </a>                 
+            
+         
+      
+</div>
+        
+    
+
+
+
+     
+    
+
+
+<footer class="footer">
+	<div class="inner">
+		<div class="copyright">
+			&copy;
+			
+			2019 -
+			
+			2020
+			kzeeyang
+
+			<br>
+			By <a href="https://hexo.io" target="_blank">Hexo</a> Theme <a href="https://github.com/Lemonreds/hexo-theme-Nayo" target="_blank">Nayo</a>
+		</div>
+	</div>
+</footer>   
+
+    <script src="/nayo.bundle.js"></script>           
+  </body>        
+</html>
